@@ -5,8 +5,10 @@
 package jsonlexer_test
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"strings"
 	"testing"
 
 	"github.com/lukpank/jsonlexer"
@@ -159,8 +161,19 @@ func TestLexerString(t *testing.T) {
 				l := jsonlexer.New(r.Get(j))
 				expectedString(t, l, c.output)
 			})
+			t.Run(fmt.Sprintf("s%d/%s/w", i, r.Name(j)), func(t *testing.T) {
+				l := jsonlexer.New(r.Get(j))
+				expectedStringWriteTo(t, l, c.output)
+			})
 		}
 	}
+	output := strings.Repeat("abc", 16384)
+	s := `"` + output + `"`
+	r := &readers{S: s}
+	l := jsonlexer.New(r.Get(101))
+	expectedStringWriteTo(t, l, output)
+	l = jsonlexer.New(r.Get(5 + r.Len()))
+	expectedStringWriteTo(t, l, output)
 }
 
 func TestLexerArrayString(t *testing.T) {
@@ -254,6 +267,21 @@ func expectedString(t *testing.T, l *jsonlexer.Lexer, expected string) {
 	}
 	if got != expected {
 		t.Errorf("expected %q but got: %q", expected, got)
+	}
+}
+
+func expectedStringWriteTo(t *testing.T, l *jsonlexer.Lexer, expected string) {
+	var b bytes.Buffer
+	n, err := l.StringWriteTo(&b)
+	if err != nil {
+		t.Fatalf("expected %q but got error: %v", expected, err)
+	}
+	got := b.String()
+	if got != expected {
+		t.Errorf("expected %q but got: %q", expected, got)
+	}
+	if n != int64(len(got)) {
+		t.Errorf("expected n=%d but got: n=%d", len(got), n)
 	}
 }
 

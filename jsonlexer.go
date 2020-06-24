@@ -212,12 +212,30 @@ func (l *Lexer) Bool() (bool, error) {
 }
 
 func (l *Lexer) String() (string, error) {
+	s, _, err := l.string(nil)
+	return s, err
+}
+
+func (l *Lexer) StringWriteTo(w io.Writer) (int64, error) {
+	s, n, err := l.string(w)
+	if err != nil {
+		return n, err
+	}
+	if s == "" {
+		return n, nil
+	}
+	m, err := io.WriteString(w, s)
+	return n + int64(m), err
+}
+
+func (l *Lexer) string(w io.Writer) (string, int64, error) {
+	var written int64
 	b, err := l.nonSpaceByte()
 	if err != nil {
-		return "", err
+		return "", written, err
 	}
 	if b != '"' {
-		return "", errors.New(`expected '"' to start string`)
+		return "", written, errors.New(`expected '"' to start string`)
 	}
 	j := len(l.b)
 	for i, c := range l.b[1:] {
@@ -229,7 +247,7 @@ func (l *Lexer) String() (string, error) {
 			j := i + 1
 			s := string(l.b[1:j])
 			l.b = l.b[j+1:]
-			return s, nil
+			return s, written, nil
 		}
 	}
 	l.sbuf.Reset()
@@ -240,23 +258,30 @@ func (l *Lexer) String() (string, error) {
 	for {
 		k, err := l.complexStr(&escape)
 		if err != nil {
-			return "", err
+			return "", written, err
 		}
 		if k != -1 {
 			s := l.sbuf.String()
 			l.sbuf.Reset()
 			l.b = l.b[k+1:]
-			return s, nil
+			return s, written, nil
 		}
 
+		if w != nil && l.sbuf.Len() >= 1024 {
+			n, err := l.sbuf.WriteTo(w)
+			written += n
+			if err != nil {
+				return "", written, err
+			}
+		}
 		n := copy(l.buf[:], l.b)
 		var m int
 		m, l.err = l.r.Read(l.buf[n:])
 		if m == 0 && l.err != nil {
 			if l.err == io.EOF {
-				return "", errors.New(`expected '"' ending but EOF encountered`)
+				return "", written, errors.New(`expected '"' ending but EOF encountered`)
 			}
-			return "", l.err
+			return "", written, l.err
 		}
 		l.b = l.buf[:n+m]
 	}
