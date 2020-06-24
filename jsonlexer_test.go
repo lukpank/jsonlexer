@@ -233,7 +233,7 @@ func expectedFloat64(t *testing.T, l *jsonlexer.Lexer, expected float64) {
 		t.Fatalf("expected %v but got error: %v", expected, err)
 	}
 	if got != expected {
-		t.Errorf("expected %v but got: %d", expected, got)
+		t.Errorf("expected %v but got: %v", expected, got)
 	}
 }
 
