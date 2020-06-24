@@ -14,7 +14,7 @@ import (
 
 func TestLexerEmptyArray(t *testing.T) {
 	r := &readers{S: " [\r\n\t]"}
-	for i := 0; i < r.Len(); i++ {
+	for i := 0; i < 2*r.Len(); i++ {
 		l := jsonlexer.New(r.Get(i))
 		if err := l.Delim('['); err != nil {
 			t.Fatalf("expected '[' but got error: %v", err)
@@ -28,7 +28,7 @@ func TestLexerEmptyArray(t *testing.T) {
 func TestLexerEmptyArrayMore(t *testing.T) {
 	for _, s := range []string{" [\r\n\t]", " [\r\n\t]\r\n"} {
 		r := &readers{S: s}
-		for i := 0; i < r.Len(); i++ {
+		for i := 0; i < 2*r.Len(); i++ {
 			l := jsonlexer.New(r.Get(i))
 			if err := l.Delim('['); err != nil {
 				t.Fatalf("expected '[' but got error: %v", err)
@@ -53,7 +53,7 @@ func TestLexerEmptyArrayMore(t *testing.T) {
 func TestLexerInt64(t *testing.T) {
 	for i, s := range []string{" \r\n-123", " \r\n-123 "} {
 		r := &readers{S: s}
-		for j := 0; j < r.Len(); j++ {
+		for j := 0; j < 2*r.Len(); j++ {
 			t.Run(fmt.Sprintf("s%d/%d", i, j), func(t *testing.T) {
 				l := jsonlexer.New(r.Get(j))
 				expectedInt64(t, l, -123)
@@ -64,7 +64,7 @@ func TestLexerInt64(t *testing.T) {
 
 func TestLexerArrayInt64(t *testing.T) {
 	r := &readers{S: " [\r\n123, -84\t]"}
-	for i := 0; i < r.Len(); i++ {
+	for i := 0; i < 2*r.Len(); i++ {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			l := jsonlexer.New(r.Get(i))
 			if err := l.Delim('['); err != nil {
@@ -84,7 +84,7 @@ func TestLexerArrayInt64(t *testing.T) {
 func TestLexerFloat64(t *testing.T) {
 	for i, s := range []string{" \r\n-1.5", " \r\n-1.5 "} {
 		r := &readers{S: s}
-		for j := 0; j < r.Len(); j++ {
+		for j := 0; j < 2*r.Len(); j++ {
 			t.Run(fmt.Sprintf("s%d/%d", i, j), func(t *testing.T) {
 				l := jsonlexer.New(r.Get(j))
 				expectedFloat64(t, l, -1.5)
@@ -95,7 +95,7 @@ func TestLexerFloat64(t *testing.T) {
 
 func TestLexerArrayFloat64(t *testing.T) {
 	r := &readers{S: " [\r\n1e3, -3.25e2\t]"}
-	for i := 0; i < r.Len(); i++ {
+	for i := 0; i < 2*r.Len(); i++ {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			l := jsonlexer.New(r.Get(i))
 			if err := l.Delim('['); err != nil {
@@ -115,7 +115,7 @@ func TestLexerArrayFloat64(t *testing.T) {
 func TestLexerBool(t *testing.T) {
 	for i, s := range []string{" \r\ntrue", " \r\ntrue ", " \r\nfalse", " \r\nfalse "} {
 		r := &readers{S: s}
-		for j := 0; j < r.Len(); j++ {
+		for j := 0; j < 2*r.Len(); j++ {
 			t.Run(fmt.Sprintf("s%d/%d", i, j), func(t *testing.T) {
 				l := jsonlexer.New(r.Get(j))
 				expectedBool(t, l, i < 2)
@@ -126,7 +126,7 @@ func TestLexerBool(t *testing.T) {
 
 func TestLexerArrayBool(t *testing.T) {
 	r := &readers{S: " [\r\ntrue, false\t]"}
-	for i := 0; i < r.Len(); i++ {
+	for i := 0; i < 2*r.Len(); i++ {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			l := jsonlexer.New(r.Get(i))
 			if err := l.Delim('['); err != nil {
@@ -154,7 +154,7 @@ func TestLexerString(t *testing.T) {
 	}
 	for i, c := range cases {
 		r := &readers{S: c.input}
-		for j := 0; j < r.Len(); j++ {
+		for j := 0; j < 2*r.Len(); j++ {
 			t.Run(fmt.Sprintf("s%d/%s", i, r.Name(j)), func(t *testing.T) {
 				l := jsonlexer.New(r.Get(j))
 				expectedString(t, l, c.output)
@@ -165,7 +165,7 @@ func TestLexerString(t *testing.T) {
 
 func TestLexerArrayString(t *testing.T) {
 	r := &readers{S: " [\r\n\"test\", \"123\"\t]"}
-	for i := 0; i < r.Len(); i++ {
+	for i := 0; i < 2*r.Len(); i++ {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			l := jsonlexer.New(r.Get(i))
 			if err := l.Delim('['); err != nil {
@@ -193,7 +193,7 @@ func TestLexerStringValue(t *testing.T) {
 	}
 	for i, c := range cases {
 		r := &readers{S: c.input}
-		for j := 0; j < r.Len(); j++ {
+		for j := 0; j < 2*r.Len(); j++ {
 			t.Run(fmt.Sprintf("s%d/%s", i, r.Name(j)), func(t *testing.T) {
 				l := jsonlexer.New(r.Get(j))
 				expectedStringValue(t, l, c.output)
@@ -230,10 +230,10 @@ func expectedInt64(t *testing.T, l *jsonlexer.Lexer, expected int64) {
 func expectedFloat64(t *testing.T, l *jsonlexer.Lexer, expected float64) {
 	got, err := l.Float64()
 	if err != nil {
-		t.Fatalf("expected %v but got error: %v", expected, err)
+		t.Fatalf("expected %g but got error: %v", expected, err)
 	}
 	if got != expected {
-		t.Errorf("expected %v but got: %v", expected, got)
+		t.Errorf("expected %g but got: %g", expected, got)
 	}
 }
 
@@ -272,7 +272,7 @@ func TestSplit1StringsReader(t *testing.T) {
 		t.Fatalf(`expected "te" but got %q (%v, %q)`, b[:n], n, err)
 	}
 	n, err = r.Read(b)
-	if err != nil || n != 3 || string(b[:n]) != "st1" {
+	if err != nil && err != io.EOF || n != 3 || string(b[:n]) != "st1" {
 		t.Fatalf(`expected "st1" but got %q (%d, %v)`, b[:n], n, err)
 	}
 	n, err = r.Read(b)
@@ -293,7 +293,7 @@ func TestSplitNStringsReader(t *testing.T) {
 		t.Fatalf(`expected "st1" but got %q (%d, %v)`, b[:n], n, err)
 	}
 	n, err = r.Read(b)
-	if err != nil || n != 1 || string(b[:n]) != "1" {
+	if err != nil && err != io.EOF || n != 1 || string(b[:n]) != "1" {
 		t.Fatalf(`expected "st1" but got %q (%d, %v)`, b[:n], n, err)
 	}
 	n, err = r.Read(b)
@@ -312,11 +312,16 @@ func (r *readers) Len() int {
 }
 
 func (r *readers) Get(i int) io.Reader {
+	rLen := r.Len()
+	earlyEOF := i > rLen
+	if i > rLen {
+		i -= rLen
+	}
 	if i < len(r.S) {
-		return &split1StringReader{s: r.S, split: i + 1}
+		return &split1StringReader{s: r.S, split: i + 1, earlyEOF: earlyEOF}
 	}
 	i -= len(r.S) - 1
-	return &splitNStringReader{s: r.S, split: i}
+	return &splitNStringReader{s: r.S, split: i, earlyEOF: earlyEOF}
 }
 
 func (r *readers) Name(i int) string {
@@ -328,9 +333,10 @@ func (r *readers) Name(i int) string {
 }
 
 type split1StringReader struct {
-	s     string
-	split int
-	pos   int
+	s        string
+	split    int
+	pos      int
+	earlyEOF bool
 }
 
 func (r *split1StringReader) Read(b []byte) (int, error) {
@@ -344,13 +350,17 @@ func (r *split1StringReader) Read(b []byte) (int, error) {
 	}
 	n := copy(b, r.s[r.pos:])
 	r.pos += n
+	if r.pos == len(r.s) { // only if earlyEOF
+		return n, io.EOF
+	}
 	return n, nil
 }
 
 type splitNStringReader struct {
-	s     string
-	split int
-	pos   int
+	s        string
+	split    int
+	pos      int
+	earlyEOF bool
 }
 
 func (r *splitNStringReader) Read(b []byte) (int, error) {
@@ -363,5 +373,8 @@ func (r *splitNStringReader) Read(b []byte) (int, error) {
 	}
 	n := copy(b, r.s[r.pos:end])
 	r.pos += n
+	if r.pos == len(r.s) { // only if earlyEOF
+		return n, io.EOF
+	}
 	return n, nil
 }

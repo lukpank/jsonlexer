@@ -19,6 +19,7 @@ type Lexer struct {
 	b     []byte
 	start bool
 	buf   [4096]byte
+	err   error
 	sbuf  bytes.Buffer
 }
 
@@ -93,18 +94,26 @@ func (l *Lexer) Int64() (int64, error) {
 		if j != -1 {
 			break
 		}
+		if l.err == io.EOF {
+			j = len(l.b)
+			break
+		}
 		if len(l.b) == len(l.buf) {
 			return 0, errors.New("int64 number to long")
 		}
 		n := copy(l.buf[:], l.b)
-		m, err := l.r.Read(l.buf[n:])
-		if err != nil {
-			if err == io.EOF {
+		var m int
+		if l.err != nil {
+			return 0, l.err
+		}
+		m, l.err = l.r.Read(l.buf[n:])
+		if m == 0 && l.err != nil {
+			if l.err == io.EOF {
 				l.b = l.buf[:n+m]
 				j = n + m
 				break
 			}
-			return 0, err
+			return 0, l.err
 		}
 		l.b = l.buf[:n+m]
 	}
@@ -129,18 +138,26 @@ func (l *Lexer) Float64() (float64, error) {
 		if j != -1 {
 			break
 		}
+		if l.err == io.EOF {
+			j = len(l.b)
+			break
+		}
 		if len(l.b) == len(l.buf) {
 			return 0, errors.New("float64 number to long")
 		}
 		n := copy(l.buf[:], l.b)
-		m, err := l.r.Read(l.buf[n:])
-		if err != nil {
-			if err == io.EOF {
+		var m int
+		if l.err != nil {
+			return 0, l.err
+		}
+		m, l.err = l.r.Read(l.buf[n:])
+		if m == 0 && l.err != nil {
+			if l.err == io.EOF {
 				l.b = l.buf[:n+m]
 				j = n + m
 				break
 			}
-			return 0, err
+			return 0, l.err
 		}
 		l.b = l.buf[:n+m]
 	}
@@ -175,7 +192,7 @@ func (l *Lexer) Bool() (bool, error) {
 				return false, errors.New(`expected true or false`)
 			}
 		}
-		if len(l.b) >= len(s) {
+		if len(l.b) >= len(s) || l.err == io.EOF {
 			l.b = l.b[len(s):]
 			return v, nil
 		}
@@ -184,7 +201,7 @@ func (l *Lexer) Bool() (bool, error) {
 		}
 		n := copy(l.buf[:], l.b)
 		m, err := l.r.Read(l.buf[n:])
-		if err != nil {
+		if m == 0 && err != nil {
 			if err == io.EOF {
 				return false, io.ErrUnexpectedEOF
 			}
@@ -233,12 +250,13 @@ func (l *Lexer) String() (string, error) {
 		}
 
 		n := copy(l.buf[:], l.b)
-		m, err := l.r.Read(l.buf[n:])
-		if err != nil {
-			if err == io.EOF {
+		var m int
+		m, l.err = l.r.Read(l.buf[n:])
+		if m == 0 && l.err != nil {
+			if l.err == io.EOF {
 				return "", errors.New(`expected '"' ending but EOF encountered`)
 			}
-			return "", err
+			return "", l.err
 		}
 		l.b = l.buf[:n+m]
 	}
@@ -283,12 +301,13 @@ func (l *Lexer) StringValue(expected string) error {
 		}
 
 		n := copy(l.buf[:], l.b)
-		m, err := l.r.Read(l.buf[n:])
-		if err != nil {
-			if err == io.EOF {
+		var m int
+		m, l.err = l.r.Read(l.buf[n:])
+		if m == 0 && l.err != nil {
+			if l.err == io.EOF {
 				return errors.New(`expected '"' ending but EOF encountered`)
 			}
-			return err
+			return l.err
 		}
 		l.b = l.buf[:n+m]
 	}
@@ -440,9 +459,13 @@ func (l *Lexer) skipDict() error {
 func (l *Lexer) nonSpaceByte() (byte, error) {
 	for {
 		if len(l.b) == 0 {
-			n, err := l.r.Read(l.buf[:])
-			if err != nil {
-				return 0, err
+			if l.err != nil {
+				return 0, l.err
+			}
+			var n int
+			n, l.err = l.r.Read(l.buf[:])
+			if n == 0 && l.err != nil {
+				return 0, l.err
 			}
 			l.b = l.buf[:n]
 		}
